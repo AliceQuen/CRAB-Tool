@@ -7,9 +7,9 @@ config.General.transferOutputs = True
 config.General.requestName = 'TaskTag'
 
 config.section_('JobType')
-config.JobType.psetName = 'runMultiLepPAT_dataRun3_miniAOD.py'
+config.JobType.psetName = '' #CMSSW config file
 config.JobType.pluginName = 'Analysis' #or 'PrivateMC' for Monte Calo jobs
-config.JobType.outputFiles = ['mymultilep.root']
+config.JobType.outputFiles = [''] # output file name
 config.JobType.allowUndistributedCMSSW = True
 
 config.section_('Data')
@@ -17,9 +17,9 @@ config.Data.inputDataset = 'DataSet'
 config.Data.inputDBS = 'global'
 config.Data.unitsPerJob = 20
 config.Data.splitting = 'LumiBased'
-config.Data.outLFNDirBase = '/store/user/qinju/jpsiPsi2S/rootNtuple/' #LFN=Logical File Name
+config.Data.outLFNDirBase = '' #output destination, must in format '/store/user/<username>/..'
 config.Data.outputDatasetTag = 'TaskTag'
 
 config.section_('User')
 config.section_('Site')
-config.Site.storageSite = 'T3_CH_CERNBOX'
+config.Site.storageSite = '' #physical store server knot, T3_CH_CERNBOX means cernbox
