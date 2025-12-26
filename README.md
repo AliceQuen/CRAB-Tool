@@ -41,4 +41,4 @@ After getting **report.out**, you can resubmit jobs executing **resubmit.sh**. B
 [@Alice Quen](https://github.com/AliceQuen) - Project Lead
 ## TODOS
 1. submit.sh needs partial submit function
-2. registerData.sh needs a more convenient way to set tag format, or at least a full instruction for it
+2. register_data.sh needs a more convenient way to set tag format, or at least a full instruction for it

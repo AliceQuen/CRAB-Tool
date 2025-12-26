@@ -3,6 +3,7 @@ declare -a errorCoded
 
 ############################### Configuration #############################
 dryRun=1 # 1 means only show jobs to be resubmitted but not actually resubmit; 0 means do resubmit
+mode='all' # specific resubmit mode; all resubmit all files, code resubmit according to error code, file resubmit according to a file list
 errorCode=('8001' '50064') # specific jobs with cerntain error codes you wants to resubmit
 ###########################################################################
 
@@ -24,12 +25,12 @@ do
 				echo -e "\033[32m $rowsTemp \033[0m resubmit because $info"
 				crab --quiet resubmit $rows
 			fi
-			else
-				echo -e "\033[32m $rowsTemp \033[0m nothing to be resubmited"
-			fi
- 			info=''
-			result=''
-			isResubmit=0
+		else
+			echo -e "\033[32m $rowsTemp \033[0m nothing to be resubmited"
+		fi
+ 		info=''
+		result=''
+		isResubmit=0
 	fi
 	for i in ${errorCode[@]}
 	do
@@ -41,5 +42,9 @@ do
 			info="$info $num $i failure,"
 		fi
 	done
+	if [[ $mode == 'all' ]]
+	then
+		isResubmit=1
+	fi
 done 
 rm -f tmp_report.out
