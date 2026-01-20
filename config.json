@@ -1,0 +1,74 @@
+{
+    "description" : "year config",
+    "year_config" : [
+    {
+        "year" : 2024,
+        "lumimask" : "/eos/user/c/cmsdqm/www/CAF/certification/Collisions24/Cert_Collisions2024_378981_386951_Golden.json",
+        "das_query" : "dataset=/ParkingDoubleMuonLowMass*/Run2024C-PromptReco-v1/MINIAOD",
+        "CMSSW" : {
+            "release" : "CMSSW_15_0_2",
+            "architecture" : "cmssw8"
+        },
+        "era" : ["C", "D", "E", "F", "G", "H", "I"],
+        "globalTag" : [
+            {
+                "tag" : "150X_dataRun3_v2",
+                "era" : ["all"]
+            }
+        ]
+    },
+    {
+        "year" : 2023,
+        "lumimask" : "/eos/user/c/cmsdqm/www/CAF/certification/Collisions23/Cert_Collisions2023_366442_370790_Golden.json",
+        "das_query" : "dataset=/ParkingDoubleMuonLowMass*/Run2024C-PromptReco-v1/MINIAOD",
+        "CMSSW" : {
+            "release" : "CMSSW_13_0_13",
+            "architecture" : "cmssw8"
+        },
+        "era" : ["A", "B", "C", "D", "E", "F"],
+        "globalTag" : [
+            {
+                "tag" : "130X_dataRun3_PromptAnalysis_v1",
+                "era" : ["all"]
+            }
+        ]
+    },
+    {
+        "year" : 2022,
+        "lumimask" : "/eos/user/c/cmsdqm/www/CAF/certification/Collisions22/Cert_Collisions2022_355100_362760_Golden.json",
+        "das_query" : "dataset=/ParkingDoubleMuonLowMass*/Run2024C-PromptReco-v1/MINIAOD",
+        "CMSSW" : {
+            "release" : "CMSSW_13_0_13",
+            "architecture" : "cmssw8"
+        },
+        "era" : ["A", "B", "C", "D"],
+        "globalTag" : [
+            {
+                "tag" : "124X_dataRun3_PromptAnalysis_v1",
+                "era" : ["C", "D"]
+            },
+            {
+                "tag" : "124X_dataRun3_Prompt_v101",
+                "era" : ["E"]
+            },
+            {
+                "tag" : "124X_dataRun3_Prompt_v2",
+                "era" : ["F", "G"]
+            }
+        ]
+    }
+    ],
+    "decription" : "HLT information",
+    "HLT_config" : [
+        {
+        "hlt" : "HLT_Dimuon0_Jpsi3p5_Muon2",
+        "filter" : "hltVertexmumuFilterJpsiMuon3p5",
+        "years" : ["2024", "2022", "2023"]
+    },
+        {
+        "hlt" : "HLT_DoubleMu4_3_LowMass_v",
+        "filter" : "hltDisplacedmumuFilterDoubleMu43LowMass",
+        "years" : ["2022", "2023", "2024"]
+    }
+    ]
+}
