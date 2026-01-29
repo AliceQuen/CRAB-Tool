@@ -1,16 +1,24 @@
 {
+    "task_name" : "test",
+    "home_dir" : "/eos/home-q/qinju/test",
+    "analysor_prefix" : "HeavyFlavorAnalysor",
+    "analysor" : "/eos/home-q/qinju/Onia2MuMu",
+    "CMSSW_config" : "runMultiLepPAT_miniAOD.py",
+    "outdir" : "/store/user/qinju/JpsiX3872_Result",
+    "output" : "mymultilep.root",
+    "storage" : "T3_CH_CERNBOX",
     "description" : "year config",
     "year_config" : [
     {
         "year" : 2024,
         "lumimask" : "/eos/user/c/cmsdqm/www/CAF/certification/Collisions24/Cert_Collisions2024_378981_386951_Golden.json",
-        "das_query" : "dataset=/ParkingDoubleMuonLowMass*/Run2024C-PromptReco-v1/MINIAOD",
+        "das_query" : "dataset=/ParkingDoubleMuonLowMass*/Run2024*-PromptReco-v*/MINIAOD",
         "CMSSW" : {
             "release" : "CMSSW_15_0_2",
             "architecture" : "cmssw8"
         },
         "era" : ["C", "D", "E", "F", "G", "H", "I"],
-        "globalTag" : [
+        "global_tags" : [
             {
                 "tag" : "150X_dataRun3_v2",
                 "era" : ["all"]
@@ -20,13 +28,13 @@
     {
         "year" : 2023,
         "lumimask" : "/eos/user/c/cmsdqm/www/CAF/certification/Collisions23/Cert_Collisions2023_366442_370790_Golden.json",
-        "das_query" : "dataset=/ParkingDoubleMuonLowMass*/Run2024C-PromptReco-v1/MINIAOD",
+        "das_query" : "dataset=/ParkingDoubleMuonLowMass*/Run2023*-PromptReco-v*/MINIAOD",
         "CMSSW" : {
             "release" : "CMSSW_13_0_13",
             "architecture" : "cmssw8"
         },
         "era" : ["A", "B", "C", "D", "E", "F"],
-        "globalTag" : [
+        "global_tags" : [
             {
                 "tag" : "130X_dataRun3_PromptAnalysis_v1",
                 "era" : ["all"]
@@ -36,13 +44,13 @@
     {
         "year" : 2022,
         "lumimask" : "/eos/user/c/cmsdqm/www/CAF/certification/Collisions22/Cert_Collisions2022_355100_362760_Golden.json",
-        "das_query" : "dataset=/ParkingDoubleMuonLowMass*/Run2024C-PromptReco-v1/MINIAOD",
+        "das_query" : "dataset=/ParkingDoubleMuonLowMass*/Run2022*-PromptReco-v*/MINIAOD",
         "CMSSW" : {
             "release" : "CMSSW_13_0_13",
             "architecture" : "cmssw8"
         },
         "era" : ["A", "B", "C", "D"],
-        "globalTag" : [
+        "global_tags" : [
             {
                 "tag" : "124X_dataRun3_PromptAnalysis_v1",
                 "era" : ["C", "D"]

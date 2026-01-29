@@ -1,0 +1,36 @@
+{
+    "task_name" : "",
+    "home_dir" : "",
+    "analysor_prefix" : "",
+    "analysor" : "",
+    "CMSSW_config" : "",
+    "outdir" : "",
+    "output" : "",
+    "storage" : "",
+    "description" : "year config",
+    "year_config" : [
+    {
+        "year" : ,
+        "lumimask" : "",
+        "das_query" : "",
+        "CMSSW" : {
+            "release" : "",
+            "architecture" : ""
+        },
+        "era" : [],
+        "global_tags" : [
+            {
+                "tag" : "",
+                "era" : [""]
+            }
+        ]
+    },
+    "decription" : "HLT information",
+    "HLT_config" : [
+        {
+        "hlt" : "",
+        "filter" : "",
+        "years" : [""]
+    }
+    ]
+}
