@@ -1,6 +1,12 @@
 #!/bin/bash
-mkdir -p $1
-cp registerData.py $1
-cp manageData.py $1
-cp crab3_template.py $1
-cp config_template.json $1/config.json
+if [[ $1 != '' ]]
+then
+	dir="Projects/$1"
+	mkdir -p ${dir}
+	cp registerData.py ${dir}
+	cp manageData.py ${dir}
+	cp crab3_template.py ${dir}
+	cp config_template.json ${dir}/config.json
+else
+	echo -e "\033[31m error! no project name sepcified\033[0m"
+fi

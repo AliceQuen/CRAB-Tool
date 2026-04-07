@@ -1,27 +1,12 @@
 import json
 import os
+import time
 import sys
 import argparse
 import re
 
-parser = argparse.ArgumentParser(description='CRAB Job config tool')
-#parser.add_argument('mode', type=str, help='work mode, era for era config; job for making work directories')
-parser.add_argument('config_file', type=str, help='config file')
-args = parser.parse_args()
-
-# chose mode
-#if args.mode == 'era':
-#    print('era configuration')
-#elif args.mode == 'job':
-#    print('making up work directories')
-#else:
-#    print('invalid mode')
-#    sys.exit(1)
-# print("please set up voms proxy")
-# os.system("voms-proxy-init -voms cms --valid 172:00")
-
 # load the config json file
-with open(f'{args.config_file}', 'r') as file:
+with open(f'config.json', 'r') as file:
     config = json.load(file)
 cwd = os.getcwd()
 # naming
@@ -64,8 +49,22 @@ while True:
     if input_ == 'n':
         break;
     elif input_ == 'y':
-        os.system('vim naming.json')
-        print("Do you still want to modify, if not, the config process will begin\n Please input 'n': don't modify 'y': modify")
+        replicated = True
+        while replicated:
+            os.system('vim naming.json')
+            with open('naming.json', 'r') as file:
+                naming = json.load(file)
+            n = set()
+            replicated = False
+            for x in [1, 2, 3]:
+                n.clear()
+                for name_o, name_n in naming[f'l{x}name'].items():
+                    n.add(name_n)
+                if len(n) != len(naming[f'l{x}name'].items()):
+                    print(f"\033[31m Names in l{x}name replicate!! Please check!!\033[0m")
+                    replicated = True
+                    time.sleep(2)
+        print("\033[32m Modification success.\033[0m Do you still want to modify, if not, the config process will begin\n Please input 'n': don't modify 'y': modify")
     else:
         print("Please input 'n': don't modify 'y': modify")
 # read naming.json for latter use
@@ -81,13 +80,16 @@ for year in config['year_config']:
 for realse, arch in cmssws.items():
     # debug
     if arch == 'cmssw7':
-        os.system(f'cmssw7 \n cmsrel {realse} \n exit')
+        os.system(f'cmssw-el7 --command-to-run \"cmsrel {realse}\"')
     else:
         os.system(f"cmsrel {realse}")
     os.system(f"mkdir -p {realse}/src/{config['analysor_prefix']}")
     os.system(f"cp -r {config['analysor']} {realse}/src/{config['analysor_prefix']}")
     os.chdir(f"{realse}/src/{config['analysor_prefix']}")
-    os.system(f"cmsenv \n scramv1 b")
+    if arch == 'cmssw7':
+        os.system('cmssw-el7 --command-to-run \"cmsenv;scramv1 b\"')
+    else:
+        os.system('cmsenv;scramv1 b')
     os.chdir(f"{config['home_dir']}")
 # creating job dir and configs
 jobs = list()
@@ -97,7 +99,7 @@ for year in config['year_config']:
     os.chdir(f"{year['CMSSW']['release']}/src/{config['analysor_prefix']}/{analysor}/test")
     os.system(f"mkdir -p CRAB-Tool_{y}")
     # copy lumimask
-    os.system(f"cp {year['lumimask']} CRAB_Tool_{y}")
+    os.system(f"cp {year['lumimask']} CRAB-Tool_{y}/")
     # creating cmssw configs 
     g_tags = year['global_tags']
     for i in g_tags:
@@ -129,6 +131,7 @@ for year in config['year_config']:
     os.system(f"das_client --query '{query}' > {y}.o")
     with open(f'{y}.o', 'r') as configlist:
         lines = configlist.readlines()
+    os.system(f'rm {y}.o')
     for line in lines:
         line = line.strip()
         dataset = line
@@ -147,11 +150,12 @@ for year in config['year_config']:
         name_ = [name_rule['l1name'][line[0]], '_', name_rule['l2name'][line[1]], '_', name_rule['l3name'][line[2]]]
         task_name = ''.join(name_)
         task_name = re.sub(r'[^A-Z^a-z^0-9]+$', '', task_name)
+        task_name = re.sub(r'^[^A-Z^a-z^0-9]+', '', task_name)
         lumimask = f"{year['lumimask']}"
         lumimask = lumimask.split('/')[-1]
         os.system(f'cp {cwd}/crab3_template.py crab3_{task_name}.py')
         os.system(f"sed -i -e 's>OUTPUT>{config['output']}>' -e 's>PSET>../{cmssw_config_file}>' -e 's>DATASET>{dataset}>' -e 's>TASK_TAG>{task_name}>' -e 's>LUMI_MASK>{lumimask}>' -e 's>OUTDIR>{config['outdir']}>' -e 's>STORAGE>{config['storage']}>' crab3_{task_name}.py")
-        jobs.append(f"{dataset},{task_name},")
+        jobs.append(f"{dataset},{task_name},unsubmitted")
     os.chdir(f"{config['home_dir']}")
 os.chdir(f"{cwd}")
 with open('joblist.o', 'w') as file:
