@@ -16,7 +16,7 @@ config.section_('Data')
 config.Data.inputDataset = 'DATASET'
 config.Data.inputDBS = 'global'
 config.Data.unitsPerJob = 20
-config.Data.splitting = 'LumiBased'
+config.Data.splitting = 'Automatic'
 config.Data.lumiMask = 'LUMI_MASK'
 config.Data.outLFNDirBase = 'OUTDIR' #output destination, must in format '/store/user/<username>/..'
 config.Data.outputDatasetTag = 'TASK_TAG'
