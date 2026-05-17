@@ -1,22 +1,39 @@
-#!/bin/bash
-# A script to generate crab config file automaticly
+#!/usr/bin/env bash
+set -euo pipefail
 
-# project config
-dataList='dataList.txt'
-template='crab3_template.py'
-cat $dataList | while read rows
-do
-	# tag1,2,3 are tags from CMS data naming standard
-	# tag1: physics target, tag2: data set, tag3: data format
-	tag1=$(echo $rows | awk 'BEGIN{FS="/"} {print $2}')
-	tag2=$(echo $rows | awk 'BEGIN{FS="/"} {print $3}')
-	tag3=$(echo $rows | awk 'BEGIN{FS="/"} {print $4}')
-	# Tag Format
-	# define tag format with varibale tag, it will show up at TaskTag in the config .py files and also in their filenames 
-	tag1_=$(echo $tag1 | grep -o [0-9]) 
-	tag2_=$(echo $tag2 | awk 'BEGIN{FS="-"} {print $1$3}')
-	tag=${tag1_}_${tag2_}_$tag3
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "${SCRIPT_DIR}"
+source "${SCRIPT_DIR}/crab_common.sh"
 
-	sed -e 's:DataSet:'"$rows:" $template > ${tag}.py
-	sed -i -e 's:TaskTag:'"${tag}:" ${tag}.py
-done
+show_help() {
+    cat <<'EOF'
+Usage: ./registerData.sh [generator options]
+
+Generate CRAB configuration files from the local RundataList_*.txt files and
+record them in generated_crab_configs.txt.
+
+This is a thin wrapper around ./generate_crab_configs.py. All non-help arguments
+are forwarded to the Python generator unchanged.
+
+Preconditions:
+  - Run 'cmsenv' in this CMSSW work area first.
+
+Examples:
+  ./registerData.sh
+  ./registerData.sh --lists RundataList_2025.txt --units-per-job 20
+  ./generate_crab_configs.py --help
+EOF
+}
+
+if (($# > 0)); then
+    case "$1" in
+        -h|--help)
+            show_help
+            exit 0
+            ;;
+    esac
+fi
+
+require_cmssw_env
+
+python3 generate_crab_configs.py "$@"
