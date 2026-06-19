@@ -6,46 +6,51 @@ cd "${SCRIPT_DIR}"
 source "${SCRIPT_DIR}/crab_common.sh"
 
 MANIFEST="${CRAB_MANIFEST:-generated_crab_configs.txt}"
-CLI_DRY_RUN=""
 CLI_USE_CACHED_STATUS=""
 CLI_REFRESH_TERMINAL_STATUSES=""
 STATUS_CACHE_DIR="${STATUS_CACHE_DIR:-status_cache}"
+RECOVERY_CACHE_DIR="${RECOVERY_CACHE_DIR:-recovery_cache}"
 STATE_FILE="${STATUS_CACHE_DIR}/latest_state.json"
+STUCK_HOURS="${STUCK_HOURS:-48}"
 SHOW_HELP=0
-declare -a FORWARD_ARGS=()
 
 show_help() {
     cat <<'EOF'
-Usage: ./resubmit.sh [options] [-- crab resubmit options]
+Usage: ./prepare_recovery_tasks.sh [options]
 
-Refresh the cached latest-attempt task status if needed, then resubmit only the
-failed CRAB jobs recorded in latest_state.json.
+Refresh or reuse the cached CRAB task status, refresh derived recovery metadata
+in the unified state file, and render the recovery configs under recovery_cache/.
 
 Options:
   -h, --help              Show this help text and exit.
   --manifest PATH         Manifest file to read. Falls back to CRAB_MANIFEST.
   --status-cache-dir PATH Status cache directory. Falls back to STATUS_CACHE_DIR.
-  --dry-run               Print crab resubmit commands without executing them.
-  --execute               Execute crab resubmit for each failed task.
+  --recovery-cache-dir PATH
+                          Recovery cache directory. Falls back to RECOVERY_CACHE_DIR.
+  --stuck-hours HOURS     Minimum idle/cooloff age required for recovery planning.
   --use-cached-status     Reuse the existing status snapshot if it exists.
-  --refresh-status        Force a fresh status collection before resubmitting.
+  --refresh-status        Force a fresh status collection before planning recovery.
   --refresh-terminal-statuses
                           Force live refresh even for cached terminal tasks.
-  --                      Stop parsing wrapper options and pass the rest to crab resubmit.
 
 Environment fallback:
   CRAB_MANIFEST           Default manifest path.
   STATUS_CACHE_DIR        Default status cache directory.
-  DRY_RUN                 Default dry-run mode (accepted values: 0/1/true/false).
+  RECOVERY_CACHE_DIR      Default recovery cache directory.
+  STUCK_HOURS             Default stuck-job threshold in hours.
   USE_CACHED_STATUS       Default cache reuse mode (accepted values: 0/1/true/false).
 
 Preconditions:
-  - The Python backend enforces 'cmsenv' and X509_USER_PROXY before resubmitting.
+  - Run 'cmsenv' in this CMSSW work area first.
+  - Export X509_USER_PROXY before querying CRAB.
 
 Examples:
-  ./resubmit.sh
-  ./resubmit.sh --execute
-  ./resubmit.sh --use-cached-status --execute -- --siteblacklist T2_FOO
+  ./prepare_recovery_tasks.sh
+  ./prepare_recovery_tasks.sh --use-cached-status --stuck-hours 72
+
+Outputs:
+  status_cache/latest_state.json
+  recovery_cache/generated_recovery_configs.txt
 EOF
 }
 
@@ -65,13 +70,15 @@ while (($#)); do
             STATUS_CACHE_DIR="$2"
             shift 2
             ;;
-        --dry-run)
-            CLI_DRY_RUN=1
-            shift
+        --recovery-cache-dir)
+            require_option_value "$1" "${2:-}"
+            RECOVERY_CACHE_DIR="$2"
+            shift 2
             ;;
-        --execute)
-            CLI_DRY_RUN=0
-            shift
+        --stuck-hours)
+            require_option_value "$1" "${2:-}"
+            STUCK_HOURS="$2"
+            shift 2
             ;;
         --use-cached-status)
             CLI_USE_CACHED_STATUS=1
@@ -85,14 +92,8 @@ while (($#)); do
             CLI_REFRESH_TERMINAL_STATUSES=1
             shift
             ;;
-        --)
-            shift
-            FORWARD_ARGS=("$@")
-            break
-            ;;
         *)
-            FORWARD_ARGS+=("$1")
-            shift
+            die "Unknown option for ./prepare_recovery_tasks.sh: $1"
             ;;
     esac
 done
@@ -102,32 +103,28 @@ if [[ "${SHOW_HELP}" == "1" ]]; then
     exit 0
 fi
 
-DRY_RUN="$(resolve_bool "DRY_RUN" "${CLI_DRY_RUN}" "${DRY_RUN:-}" "1")"
 USE_CACHED_STATUS="$(resolve_bool "USE_CACHED_STATUS" "${CLI_USE_CACHED_STATUS}" "${USE_CACHED_STATUS:-}" "0")"
 STATE_FILE="${STATUS_CACHE_DIR}/latest_state.json"
-declare -a RESUBMIT_ARGS=(
-    --manifest "${MANIFEST}"
+
+require_cmssw_env
+require_manifest "${MANIFEST}"
+require_proxy_env
+
+if [[ "${USE_CACHED_STATUS}" != "1" || ! -f "${STATE_FILE}" ]]; then
+    status_args=(
+        --manifest "${MANIFEST}"
+        --cache-dir "${STATUS_CACHE_DIR}"
+    )
+    if [[ -n "${CLI_REFRESH_TERMINAL_STATUSES}" ]]; then
+        status_args+=(--refresh-terminal-statuses)
+    fi
+    ./status.sh "${status_args[@]}"
+fi
+
+python3 crab_recovery_task_builder.py refresh-recovery \
+    --state-file "${STATE_FILE}" \
+    --output-dir "${RECOVERY_CACHE_DIR}" \
+    --stuck-hours "${STUCK_HOURS}"
+
+python3 crab_recovery_task_builder.py render-all \
     --state-file "${STATE_FILE}"
-)
-
-if [[ "${DRY_RUN}" == "1" ]]; then
-    RESUBMIT_ARGS+=(--dry-run)
-else
-    RESUBMIT_ARGS+=(--execute)
-fi
-
-if [[ "${USE_CACHED_STATUS}" == "1" ]]; then
-    RESUBMIT_ARGS+=(--use-cached-status)
-else
-    RESUBMIT_ARGS+=(--refresh-status)
-fi
-
-if [[ -n "${CLI_REFRESH_TERMINAL_STATUSES}" ]]; then
-    RESUBMIT_ARGS+=(--refresh-terminal-statuses)
-fi
-
-if ((${#FORWARD_ARGS[@]} > 0)); then
-    RESUBMIT_ARGS+=(-- "${FORWARD_ARGS[@]}")
-fi
-
-exec python3 crab_resubmit.py "${RESUBMIT_ARGS[@]}"

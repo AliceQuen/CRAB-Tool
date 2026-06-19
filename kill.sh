@@ -12,16 +12,16 @@ declare -a FORWARD_ARGS=()
 
 show_help() {
     cat <<'EOF'
-Usage: ./submit.sh [options] [-- crab submit options]
+Usage: ./kill.sh [options] [-- crab kill options]
 
-Submit every CRAB configuration listed in the manifest.
+Issue "crab kill" for every task listed in the manifest.
 
 Options:
   -h, --help            Show this help text and exit.
   --manifest PATH       Manifest file to read. Falls back to CRAB_MANIFEST.
-  --dry-run             Print the crab submit commands without executing them.
-  --execute             Execute crab submit for each config in the manifest.
-  --                    Stop parsing wrapper options and pass the rest to crab submit.
+  --dry-run             Print the crab kill commands without executing them.
+  --execute             Execute crab kill for each task in the manifest.
+  --                    Stop parsing wrapper options and pass the rest to crab kill.
 
 Environment fallback:
   CRAB_MANIFEST         Default manifest path.
@@ -29,12 +29,12 @@ Environment fallback:
 
 Preconditions:
   - Run 'cmsenv' in this CMSSW work area first.
-  - Export X509_USER_PROXY before executing submissions.
+  - Export X509_USER_PROXY before killing CRAB tasks.
 
 Examples:
-  ./submit.sh
-  ./submit.sh --execute
-  ./submit.sh --manifest my_configs.txt --execute -- --wait
+  ./kill.sh
+  ./kill.sh --execute
+  ./kill.sh --execute -- --killwarning
 EOF
 }
 
@@ -82,12 +82,8 @@ require_proxy_env
 
 while read -r cfg; do
     [[ -n "${cfg}" ]] || continue
-    if [[ ! -f "${cfg}" ]]; then
-        echo "Missing CRAB config ${cfg}. Regenerate with ./registerData.sh." >&2
-        exit 1
-    fi
-
-    cmd=(crab submit -c "${cfg}")
+    task_dir="$(cfg_to_task_dir "${cfg}")"
+    cmd=(crab kill -d "${task_dir}")
     if ((${#FORWARD_ARGS[@]} > 0)); then
         cmd+=("${FORWARD_ARGS[@]}")
     fi
