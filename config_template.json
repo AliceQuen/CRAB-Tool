@@ -1,16 +1,19 @@
 {
     "task_name" : "",
     "home_dir" : "",
-    "analysor_prefix" : "",
-    "analysor" : "",
+    "analyzer_prefix" : "",
+    "analyzer" : "",
+    "analyzer_branch" : "",
+    "analyzer_sedcmd" : "",
     "CMSSW_config" : "",
     "outdir" : "",
     "output" : "",
     "storage" : "",
     "description" : "year config",
+    "job_type" : "data",
     "year_config" : [
     {
-        "year" : ,
+        "year" : "",
         "lumimask" : "",
         "das_query" : "",
         "CMSSW" : {
@@ -23,7 +26,8 @@
                 "era" : [""]
             }
         ]
-    },
+    }
+    ],
     "decription" : "HLT information",
     "HLT_config" : [
         {

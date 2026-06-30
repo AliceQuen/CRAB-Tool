@@ -28,6 +28,10 @@ for year in config['year_config']:
             regex_pattern = re.escape(pattern[i]).replace(r'\*', '(.*)')
             regex_pattern = f'^{regex_pattern}$'
             match = re.search(regex_pattern, line[i])
+            if not match:
+                print("No match pattern, this maybe related to the das query used")
+                print("Excution Aborted")
+                exit(1)
             for j in list(match.groups()):
                 names.append(j)
             name = ''.join(names)
@@ -74,18 +78,40 @@ with open('naming.json', 'r') as file:
 os.system(f"mkdir -p {config['home_dir']}")
 os.chdir(f"{config['home_dir']}")
 cmssws = dict()
-analysor = config['analysor'].split('/')[-1]
+analyzer_path = config['analyzer']
+analyzer = config['analyzer'].split('/')[-1]
 for year in config['year_config']:
     cmssws[year['CMSSW']['release']] = year['CMSSW']['architecture']
 for realse, arch in cmssws.items():
-    # debug
     if arch == 'cmssw7':
         os.system(f'cmssw-el7 --command-to-run \"cmsrel {realse}\"')
     else:
         os.system(f"cmsrel {realse}")
-    os.system(f"mkdir -p {realse}/src/{config['analysor_prefix']}")
-    os.system(f"cp -r {config['analysor']} {realse}/src/{config['analysor_prefix']}")
-    os.chdir(f"{realse}/src/{config['analysor_prefix']}")
+    os.system(f"mkdir -p {realse}/src/{config['analyzer_prefix']}")
+    is_git_repo = os.path.isdir(os.path.join(analyzer_path, '.git'))
+    branch = config.get('analyzer_branch', '')
+    use_clone = False
+    if is_git_repo and branch:
+        result = os.popen(f'cd {analyzer_path} && git branch -a').read()
+        if branch in result:
+            use_clone = True
+    if use_clone:
+        os.system(f"git clone -b {branch} {analyzer_path} {realse}/src/{config['analyzer_prefix']}/{analyzer}")
+    else:
+        os.system(f"cp -r {analyzer_path} {realse}/src/{config['analyzer_prefix']}")
+    os.chdir(f"{realse}/src/{config['analyzer_prefix']}")
+    if config.get('analyzer_sedcmd'):
+        sed_cmd = config['analyzer_sedcmd']
+        safe = True
+        parts = sed_cmd.split()
+        for p in parts:
+            if os.path.isabs(p):
+                safe = False
+                break
+        if '..' in sed_cmd:
+            safe = False
+        if safe:
+            os.system(sed_cmd)
     if arch == 'cmssw7':
         os.system('cmssw-el7 --command-to-run \"cmsenv;scramv1 b\"')
     else:
@@ -93,10 +119,11 @@ for realse, arch in cmssws.items():
     os.chdir(f"{config['home_dir']}")
 # creating job dir and configs
 jobs = list()
+job_type = config["job_type"]
 for year in config['year_config']:
     #making crab tool directory
     y = str(year['year'])
-    os.chdir(f"{year['CMSSW']['release']}/src/{config['analysor_prefix']}/{analysor}/test")
+    os.chdir(f"{year['CMSSW']['release']}/src/{config['analyzer_prefix']}/{analyzer}/test")
     os.system(f"mkdir -p CRAB-Tool_{y}")
     # copy lumimask
     os.system(f"cp {year['lumimask']} CRAB-Tool_{y}/")
@@ -132,14 +159,18 @@ for year in config['year_config']:
     with open(f'{y}.o', 'r') as configlist:
         lines = configlist.readlines()
     os.system(f'rm {y}.o')
+    
     for line in lines:
         line = line.strip()
         dataset = line
         line = line.split('/')
         line.pop(0)
-        # find era
-        regex_pattern = f'Run{y}'+ '([A-Z]{1})'
-        era = re.search(regex_pattern, line[1]).group(1)
+        # find era if job_type is data
+        if job_type == "data":
+            regex_pattern = f'Run{y}'+ '([A-Z]{1})'
+            era = re.search(regex_pattern, line[1]).group(1)
+        else:
+            era = "all"
         if len(g_tags) == 1:
             cmssw_config_file = config['CMSSW_config'].replace(r'.py', f"_{y}{g_tags[0]['era'][0]}.py") 
         else:
@@ -152,10 +183,14 @@ for year in config['year_config']:
         task_name = re.sub(r'[^A-Z^a-z^0-9]+$', '', task_name)
         task_name = re.sub(r'^[^A-Z^a-z^0-9]+', '', task_name)
         lumimask = f"{year['lumimask']}"
-        lumimask = lumimask.split('/')[-1]
-        os.system(f'cp {cwd}/crab3_template.py crab3_{task_name}.py')
-        os.system(f"sed -i -e 's>OUTPUT>{config['output']}>' -e 's>PSET>../{cmssw_config_file}>' -e 's>DATASET>{dataset}>' -e 's>TASK_TAG>{task_name}>' -e 's>LUMI_MASK>{lumimask}>' -e 's>OUTDIR>{config['outdir']}>' -e 's>STORAGE>{config['storage']}>' crab3_{task_name}.py")
-        jobs.append(f"{dataset},{task_name},unsubmitted")
+        if lumimask != "":
+            lumimask = lumimask.split('/')[-1]
+            os.system(f'cp {cwd}/crab3_template.py crab3_{task_name}.py')
+            os.system(f"sed -i -e 's>OUTPUT>{config['output']}>' -e 's>PSET>../{cmssw_config_file}>' -e 's>DATASET>{dataset}>' -e 's>TASK_TAG>{task_name}>' -e 's>LUMI_MASK>{lumimask}>' -e 's>OUTDIR>{config['outdir']}>' -e 's>STORAGE>{config['storage']}>' crab3_{task_name}.py")
+        else:
+            os.system(f"sed -i -e 's>OUTPUT>{config['output']}>' -e 's>PSET>../{cmssw_config_file}>' -e 's>DATASET>{dataset}>' -e 's>TASK_TAG>{task_name}>' -e '/LUMI_MASK/d' -e 's>OUTDIR>{config['outdir']}>' -e 's>STORAGE>{config['storage']}>' crab3_{task_name}.py")
+
+        jobs.append(f"{y},{dataset},{task_name},unsubmitted")
     os.chdir(f"{config['home_dir']}")
 os.chdir(f"{cwd}")
 with open('joblist.o', 'w') as file:

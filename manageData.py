@@ -56,19 +56,19 @@ else:
     for i in jobs:
         i = i.strip()
         j = i.split(',')
-        match = re.search('Run([0-9]+)([A-Z]{1})', j[0])
+        match = re.search('Run([0-9]+)([A-Z]{1})', j[1])
         # sort by year, eras, datasets, names
         if year:
-            if match.group(1) in year.strip().split(','):
+            if j[0] in year.strip().split(','):
                 years.add(i)
         if era:
             if match.group(2) in era.strip().split(','):
                 eras.add(i)
         if dataset:
-            if j[0].split('/')[1] in dataset.strip().split(','):
+            if j[1].split('/')[1] in dataset.strip().split(','):
                 datasets.add(i)
         if name:
-            if j[1] in name.strip().split(','):
+            if j[2] in name.strip().split(','):
                 names.add(i)
         job_ = list()
         if len(years):
@@ -87,7 +87,7 @@ else:
 # find location
 cwd = os.getcwd()
 homedir = f"{config['home_dir']}"
-analysor = f"{config['analysor']}".split('/')[-1]
+analyzer = f"{config['analyzer']}".split('/')[-1]
 # initialize status statistics for status mode
 if args.mode == 'status' and not args.verbose:
     status_stats = {}
@@ -96,7 +96,7 @@ for i in jobs_used:
         # lookingup config
         i = i.strip()
         i = i.split(',')
-        y = re.search('Run([0-9]+)([A-Z]{1})', i[0]).group(1)
+        y = i[0]
         y_in = False
         CMSSW = dict()
         for j in config['year_config']:
@@ -114,32 +114,32 @@ for i in jobs_used:
         else:
             singularity = 'cmsenv;'
             tali = ''
-        os.chdir(f"{homedir}/{CMSSW['release']}/src/{config['analysor_prefix']}/{analysor}/test/CRAB-Tool_{y}")
+        os.chdir(f"{homedir}/{CMSSW['release']}/src/{config['analyzer_prefix']}/{analyzer}/test/CRAB-Tool_{y}")
         if args.mode == 'submit':
             # submit
-            if i[2] == 'unsubmitted':
-                print(f"\033[32m submiting\033[0m {i[1]}")
-                os.system(f"{singularity}crab --quiet submit crab3_{i[1]}.py{tail}")
+            if i[3] == 'unsubmitted':
+                print(f"\033[32m submiting\033[0m {i[2]}")
+                os.system(f"{singularity}crab --quiet submit crab3_{i[2]}.py{tail}")
                 # update status
-                os.system(f"sed -i -e /{i[1]}/s/unsubmitted/submitted/ {cwd}/joblist.o")
+                os.system(f"sed -i -e /{i[2]}/s/unsubmitted/submitted/ {cwd}/joblist.o")
             else:
-                print(f"{i[1]} \033[31m already submitted\033[0m")
+                print(f"{i[2]} \033[31m already submitted\033[0m")
         elif args.mode == 'status':
             # status
-            if i[2] == 'unsubmitted':
+            if i[3] == 'unsubmitted':
                 main_status = 'unsubmitted'
                 if main_status in status_stats:
                         status_stats[main_status] += 1
                 else:
                         status_stats[main_status] = 1
-                print(f'job {i[1]} \033[31m not submitted\033[0m, please submit it first')
+                print(f'job {i[2]} \033[31m not submitted\033[0m, please submit it first')
             else:
                 if args.verbose:
-                    print(f"\033[32m checking status with verbose errors for \033[0m {i[1]}")
-                    os.system(f"{singularity}crab status --verboseErrors crab_{i[1]}{tail}")
+                    print(f"\033[32m checking status with verbose errors for \033[0m {i[2]}")
+                    os.system(f"{singularity}crab status --verboseErrors crab_{i[2]}{tail}")
                 else:
-                    print(f"\033[32m checking status for \033[0m {i[1]}")
-                    os.system(f"{singularity}crab status crab_{i[1]} > temp1.o{tail}")
+                    print(f"\033[32m checking status for \033[0m {i[2]}")
+                    os.system(f"{singularity}crab status crab_{i[2]} > temp1.o{tail}")
                     os.system("cat temp1.o | grep -e 'Status on' -e 'jobs failed with' > temp.o")
                     with open('temp.o', 'r') as file:
                         report = file.readlines()
@@ -162,7 +162,7 @@ for i in jobs_used:
                     print(f"Status is {status}")
                     os.system('rm temp.o temp1.o')
                     # update status
-                    os.system(f"sed -i -e /{i[1]}/s/{i[2]}/{status}/ {cwd}/joblist.o")
+                    os.system(f"sed -i -e /{i[2]}/s/{i[3]}/{status}/ {cwd}/joblist.o")
                     # collect status statistics
                     # extract main status (first token before any colon)
                     main_status = status.split(':')[1] if ':' in status else status
@@ -173,10 +173,10 @@ for i in jobs_used:
                         status_stats[main_status] = 1
         elif args.mode == 'resubmit':
             # resubmit
-            match = re.search('error', i[2])
+            match = re.search('error', i[3])
             error_hit = list()
             if match:
-                Es = i[2].split(":")
+                Es = i[3].split(":")
                 for x in Es:
                     match = re.search('error(.*)', x)
                     if match:
@@ -186,26 +186,26 @@ for i in jobs_used:
                         else:
                             error_hit.append(match.group(1))
                 if len(error_hit):
-                    print(f"\033[32m resubmitting \033[0m {i[1]} because of error codes {error_hit}")
-                    os.system(f"{singularity}crab --quiet resubmit crab_{i[1]}{tail}")
+                    print(f"\033[32m resubmitting \033[0m {i[2]} because of error codes {error_hit}")
+                    os.system(f"{singularity}crab --quiet resubmit crab_{i[2]}{tail}")
                     # update status
-                    os.system(f"sed -i -e /{i[1]}/s/{i[2]}/resubmitted/ {cwd}/joblist.o")
+                    os.system(f"sed -i -e /{i[2]}/s/{i[3]}/resubmitted/ {cwd}/joblist.o")
                 else:
-                    print(f"\033[31m no error hit, nothing done for\033[0m {i[1]}, status is {i[2]}")
+                    print(f"\033[31m no error hit, nothing done for\033[0m {i[2]}, status is {i[3]}")
             else:
-                print(f"\033[31m nothing done for \033[0m {i[1]}, status is {i[2]}")
+                print(f"\033[31m nothing done for \033[0m {i[2]}, status is {i[3]}")
         elif args.mode == 'kill':
             # kill and reset job
-            if i[2] != 'unsubmitted':
-                print(f"\033[32m killing \033[0m {i[1]}")
-                os.system(f"{singularity}crab --quiet kill crab_{i[1]}{tail}")
-                print(f"\033[32m deleting \033[0m crab_{i[1]} directory")
-                os.system(f"rm -rf crab_{i[1]}")
+            if i[3] != 'unsubmitted':
+                print(f"\033[32m killing \033[0m {i[2]}")
+                os.system(f"{singularity}crab --quiet kill crab_{i[2]}{tail}")
+                print(f"\033[32m deleting \033[0m crab_{i[2]} directory")
+                os.system(f"rm -rf crab_{i[2]}")
                 # update status to unsubmitted
-                os.system(f"sed -i -e /{i[1]}/s/{i[2]}/unsubmitted/ {cwd}/joblist.o")
-                print(f"\033[32m {i[1]} \033[0mhas been reset to unsubmitted")
+                os.system(f"sed -i -e /{i[2]}/s/{i[3]}/unsubmitted/ {cwd}/joblist.o")
+                print(f"\033[32m {i[2]} \033[0mhas been reset to unsubmitted")
             else:
-                print(f"{i[1]} \033[31m is already unsubmitted\033[0m")
+                print(f"{i[2]} \033[31m is already unsubmitted\033[0m")
 
 # print status statistics for status mode (non-verbose)
 if args.mode == 'status' and not args.verbose:
